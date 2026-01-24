@@ -1,0 +1,11 @@
+import os
+
+MYSQL_URL = "mysql+pymysql://root:@localhost:3306/face_db"
+
+QDRANT_HOST = "localhost"
+QDRANT_PORT = 6333
+QDRANT_COLLECTION = "faces"
+
+SIMILARITY_THRESHOLD = 0.6
+DUPLICATE_THRESHOLD = 0.75
+FRAUD_THRESHOLD = 0.7
