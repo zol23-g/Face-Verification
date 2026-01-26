@@ -1,3 +1,4 @@
+import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.schemas import FaceRequest, FaceResponse
@@ -31,9 +32,17 @@ def verify_face(payload: FaceRequest, db: Session = Depends(get_db)):
     fraud_score = compute_fraud(matches)
 
     embedding_hash = hashlib.sha256(embedding.tobytes()).hexdigest()
+    point_id = str(uuid.uuid4())
 
     if fraud_score < 0.7:
-        insert_face(embedding_hash, embedding)
+        insert_face(
+            point_id=point_id,
+            embedding=embedding,
+            payload={
+                "embedding_hash": embedding_hash,
+                "user_id": payload.user_id
+            }
+        )
 
     log = VerificationLog(
         user_id=payload.user_id,
