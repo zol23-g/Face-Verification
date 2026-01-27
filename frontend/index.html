@@ -7,10 +7,13 @@
 
 <h2>Face Verification Test</h2>
 
+<p><b id="challengeText"></b></p>
+
 <video id="video" width="320" height="240" autoplay></video>
-<br>
-<button onclick="capture()">Capture & Verify</button>
-<p id="result"></p>
+<br><br>
+
+<button onclick="startVerification()">Capture & Verify</button>
+<pre id="result"></pre>
 
 <canvas id="canvas" width="320" height="240" style="display:none"></canvas>
 
@@ -18,29 +21,47 @@
 const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const result = document.getElementById("result");
+const challengeText = document.getElementById("challengeText");
+
+const challenges = ["blink", "turn_left", "turn_right"];
+const challenge = challenges[Math.floor(Math.random() * challenges.length)];
+challengeText.innerText = "Challenge: " + challenge.replace("_", " ");
 
 navigator.mediaDevices.getUserMedia({ video: true })
   .then(stream => video.srcObject = stream)
-  .catch(err => alert("Camera access denied"));
+  .catch(() => alert("Camera access denied"));
 
-function capture() {
+async function startVerification() {
   const ctx = canvas.getContext("2d");
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const frames = [];
 
-  const base64Image = canvas.toDataURL("image/jpeg")
-    .replace("data:image/jpeg;base64,", "");
+  result.innerText = "Capturing frames...";
+
+  for (let i = 0; i < 10; i++) {
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const frame = canvas.toDataURL("image/jpeg")
+      .replace("data:image/jpeg;base64,", "");
+    frames.push(frame);
+    await new Promise(r => setTimeout(r, 300));
+  }
+
+  result.innerText = "Verifying...";
 
   fetch("http://localhost:8000/verify", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       user_id: "user_001",
-      image_base64: base64Image
+      challenge: challenge,
+      frames_base64: frames
     })
   })
   .then(res => res.json())
   .then(data => {
     result.innerText = JSON.stringify(data, null, 2);
+  })
+  .catch(err => {
+    result.innerText = "Error: " + err;
   });
 }
 </script>

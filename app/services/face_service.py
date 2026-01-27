@@ -11,8 +11,31 @@ def decode_image(base64_str: str):
     np_arr = np.frombuffer(img_bytes, np.uint8)
     return cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
-def extract_embedding(image):
+def extract_embedding(frames):
+    """
+    frames: List[np.ndarray]
+    returns: np.ndarray (embedding)
+    """
+
+    # 🛑 HARD GUARD — prevents this bug forever
+    if not isinstance(frames, list):
+        raise TypeError("extract_embedding expects a list of frames")
+
+    if len(frames) == 0:
+        raise ValueError("No frames provided")
+
+    # ✅ ALWAYS select ONE frame
+    image = frames[len(frames) // 2]
+
+    if not isinstance(image, np.ndarray):
+        raise TypeError("Selected frame is not a numpy array")
+
     faces = face_app.get(image)
-    if len(faces) != 1:
-        raise ValueError("Exactly one face required")
+
+    if not faces:
+        raise ValueError("No face detected for embedding")
+
+    if len(faces) > 1:
+        raise ValueError("Multiple faces detected")
+
     return faces[0].embedding
