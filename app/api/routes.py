@@ -2,13 +2,13 @@ import uuid
 import hashlib
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.schemas import FaceRequest, FaceResponse
+from app.schemas import FaceVerifyRequest, FaceResponse ,FaceRegisterRequest
 from app.database import SessionLocal
 from app.security.advanced_liveness import verify_challenge
 from app.services.face_service import extract_embedding
 from app.services.vector_service import search_face, insert_face
 from app.services.fraud_service import compute_fraud
-from app.models import VerificationLog
+from app.models import UserFace, VerificationLog
 from app.utils.decode_frames import decode_frames
 
 router = APIRouter()
@@ -21,7 +21,7 @@ def get_db():
         db.close()
 
 @router.post("/verify", response_model=FaceResponse)
-def verify_face(payload: FaceRequest, db: Session = Depends(get_db)):
+def verify_face(payload: FaceVerifyRequest, db: Session = Depends(get_db)):
     # 1️⃣ Decode frames
     frames = decode_frames(payload.frames_base64)
     if len(frames) < 5:
@@ -72,4 +72,52 @@ def verify_face(payload: FaceRequest, db: Session = Depends(get_db)):
     return FaceResponse(
         verified=is_verified,
         fraud_score=fraud_score
+    )
+
+
+@router.post("/register", response_model=FaceResponse)
+def register_face(payload: FaceRegisterRequest, db: Session = Depends(get_db)):
+
+    # 1️⃣ Decode frames
+    frames = decode_frames(payload.frames_base64)
+    if len(frames) < 5:
+        raise HTTPException(400, "Not enough frames for registration")
+
+    # 2️⃣ Liveness check
+    if not verify_challenge(payload.challenge, frames):
+        raise HTTPException(400, "Liveness verification failed")
+
+    # 3️⃣ Extract embedding
+    embedding = extract_embedding(frames)
+
+    # 4️⃣ Prevent duplicate registration
+    matches = search_face(embedding)
+    if matches and matches[0].score > 0.70:
+        raise HTTPException(409, "Face already registered")
+
+    # 5️⃣ Hash embedding (replay protection)
+    embedding_hash = hashlib.sha256(embedding.tobytes()).hexdigest()
+    point_id = str(uuid.uuid4())
+
+    # 6️⃣ Insert into Qdrant
+    insert_face(
+        point_id=point_id,
+        embedding=embedding,
+        payload={
+            "user_id": payload.user_id,
+            "embedding_hash": embedding_hash
+        }
+    )
+
+    # 7️⃣ Store user in SQL
+    user_face = UserFace(
+        user_id=payload.user_id,
+        embedding_hash=embedding_hash
+    )
+    db.add(user_face)
+    db.commit()
+
+    return FaceResponse(
+        verified=True,
+        fraud_score=0.0
     )
