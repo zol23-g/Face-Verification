@@ -1,45 +1,370 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Face Analysis: Age, Gender & Glasses</title>
+  <title>Face Analysis: Age, Gender & Verification</title>
   <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; background: #f4f7f6; margin: 0; padding: 20px; }
-    .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 100%; max-width: 700px; }
-    h2 { color: #333; margin-top: 0; text-align: center; }
-    .video-wrapper { position: relative; width: 640px; height: 480px; background: #222; border-radius: 8px; overflow: hidden; margin: 0 auto; }
-    #video { width: 640px; height: 480px; transform: scaleX(-1); } /* Mirror view */
-    #overlay { position: absolute; top: 0; left: 0; width: 640px; height: 480px; }
-    .info-panel { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-    .status-box { background: #e9ecef; padding: 10px; border-radius: 6px; font-size: 14px; color: #495057; }
-    .challenge-box { background: #fff3cd; padding: 10px; border-radius: 6px; border-left: 5px solid #ffc107; font-weight: bold; }
-    .controls { margin-top: 25px; text-align: center; }
-    button { padding: 12px 30px; font-size: 16px; font-weight: bold; cursor: pointer; background: #28a745; color: white; border: none; border-radius: 50px; transition: all 0.3s; }
-    button:hover { background: #218838; transform: translateY(-2px); }
-    button:disabled { background: #6c757d; cursor: not-allowed; transform: none; }
-    #result { margin-top: 20px; background: #212529; color: #00ff00; padding: 15px; border-radius: 6px; font-family: monospace; font-size: 13px; overflow-x: auto; }
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      display: flex; 
+      flex-direction: row;
+      justify-content: center;
+      align-items: flex-start; 
+      background: #f4f7f6; 
+      margin: 0; 
+      padding: 20px;
+      gap: 30px;
+      min-height: 100vh;
+    }
+    .main-container { 
+      background: white; 
+      padding: 30px; 
+      border-radius: 12px; 
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08); 
+      width: 680px;
+      flex-shrink: 0;
+    }
+    .form-container {
+      background: white; 
+      padding: 30px; 
+      border-radius: 12px; 
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08); 
+      width: 400px;
+      display: none;
+    }
+    h2 { 
+      color: #333; 
+      margin-top: 0; 
+      text-align: center; 
+    }
+    .video-wrapper { 
+      position: relative; 
+      width: 640px; 
+      height: 480px; 
+      background: #222; 
+      border-radius: 8px; 
+      overflow: hidden; 
+      margin: 0 auto 20px auto;
+    }
+    #video { 
+      width: 640px; 
+      height: 480px; 
+      transform: scaleX(-1); 
+    }
+    #overlay { 
+      position: absolute; 
+      top: 0; 
+      left: 0; 
+      width: 640px; 
+      height: 480px; 
+      z-index: 2;
+    }
+    /* New Silhouette Overlay */
+    .silhouette-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 640px;
+      height: 480px;
+      pointer-events: none;
+      z-index: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0.6;
+    }
+    .silhouette-svg {
+      width: 400px;
+      height: 400px;
+      fill: none;
+      stroke: #00ff00;
+      stroke-width: 2;
+      stroke-dasharray: 10, 5;
+    }
+    .info-panel { 
+      margin-top: 20px; 
+      display: grid; 
+      grid-template-columns: 1fr 1fr; 
+      gap: 15px; 
+    }
+    .status-box { 
+      background: #e9ecef; 
+      padding: 10px; 
+      border-radius: 6px; 
+      font-size: 14px; 
+      color: #495057; 
+    }
+    .challenge-box { 
+      background: #fff3cd; 
+      padding: 10px; 
+      border-radius: 6px; 
+      border-left: 5px solid #ffc107; 
+      font-weight: bold; 
+    }
+    .controls { 
+      margin-top: 25px; 
+      display: flex; 
+      justify-content: center; 
+      gap: 15px; 
+    }
+    button { 
+      padding: 12px 30px; 
+      font-size: 16px; 
+      font-weight: bold; 
+      cursor: pointer; 
+      color: white; 
+      border: none; 
+      border-radius: 50px; 
+      transition: all 0.3s; 
+    }
+    button:hover { 
+      transform: translateY(-2px); 
+    }
+    button:disabled { 
+      background: #6c757d; 
+      cursor: not-allowed; 
+      transform: none; 
+    }
+    #verifyBtn { 
+      background: #28a745; 
+    }
+    #verifyBtn:hover { 
+      background: #218838; 
+    }
+    #registerBtn { 
+      background: #007bff; 
+    }
+    #registerBtn:hover { 
+      background: #0069d9; 
+    }
+    #result { 
+      margin-top: 20px; 
+      background: #212529; 
+      color: #00ff00; 
+      padding: 15px; 
+      border-radius: 6px; 
+      font-family: monospace; 
+      font-size: 13px; 
+      overflow-x: auto; 
+    }
+    .form-title {
+      color: #333;
+      margin-top: 0;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #007bff;
+    }
+    .form-group { 
+      margin-bottom: 20px; 
+    }
+    label { 
+      display: block; 
+      margin-bottom: 8px; 
+      font-weight: 600; 
+      color: #495057; 
+      font-size: 14px; 
+    }
+    input, select { 
+      width: 100%; 
+      padding: 12px; 
+      border: 1px solid #ced4da; 
+      border-radius: 6px; 
+      font-size: 14px; 
+      box-sizing: border-box;
+    }
+    input:disabled, select:disabled {
+      background-color: #f8f9fa;
+      color: #6c757d;
+      cursor: not-allowed;
+    }
+    .detected-section {
+      background: #e7f5ff;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      border-left: 4px solid #339af0;
+    }
+    .detected-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #b3d7ff;
+    }
+    .detected-item:last-child {
+      margin-bottom: 0;
+      border-bottom: none;
+    }
+    .detected-label {
+      font-weight: 600;
+      color: #1971c2;
+    }
+    .detected-value {
+      font-weight: bold;
+      color: #0c5460;
+      font-size: 16px;
+    }
+    .form-buttons { 
+      display: flex; 
+      justify-content: space-between; 
+      gap: 10px; 
+      margin-top: 25px; 
+    }
+    .form-buttons button { 
+      padding: 12px 25px; 
+      font-size: 15px; 
+      flex: 1;
+    }
+    #cancelBtn { 
+      background: #6c757d; 
+    }
+    #confirmBtn { 
+      background: #20c997; 
+    }
+    .highlight-box {
+      border: 2px solid #20c997;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 
+      0% { box-shadow: 0 0 0 0 rgba(32, 201, 151, 0.4); } 
+      70% { box-shadow: 0 0 0 10px rgba(32, 201, 151, 0); } 
+      100% { box-shadow: 0 0 0 0 rgba(32, 201, 151, 0); } 
+    }
+    .no-face-detected {
+      text-align: center;
+      color: #dc3545;
+      font-style: italic;
+      padding: 15px;
+      background: #ffe3e3;
+      border-radius: 6px;
+      border-left: 4px solid #dc3545;
+    }
+    .face-detected {
+      color: #28a745;
+      font-weight: bold;
+    }
+    .confidence-indicator {
+      display: inline-block;
+      width: 60px;
+      height: 8px;
+      background: linear-gradient(90deg, #dc3545, #ffc107, #28a745);
+      border-radius: 4px;
+      margin-left: 10px;
+      vertical-align: middle;
+      position: relative;
+    }
+    .confidence-fill {
+      height: 100%;
+      background: #28a745;
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+    .confidence-text {
+      font-size: 12px;
+      color: #6c757d;
+      margin-top: 5px;
+    }
   </style>
 </head>
 <body>
 
-<div class="container">
+<!-- Main Container (Left Side) -->
+<div class="main-container">
   <h2>AI Face Intelligence</h2>
-  
+
   <div class="info-panel">
     <div class="status-box" id="status">Initializing system...</div>
     <div class="challenge-box" id="challengeText">Challenge: Loading...</div>
   </div>
-  
+
   <div class="video-wrapper">
     <video id="video" autoplay muted playsinline></video>
+    <!-- Silhouette Overlay -->
+    <div class="silhouette-overlay">
+      <svg class="silhouette-svg" viewBox="0 0 100 100">
+        <!-- Head outline -->
+        <path d="M50,20 C35,20 25,35 25,50 C25,65 35,80 50,80 C65,80 75,65 75,50 C75,35 65,20 50,20 Z" />
+        <!-- Shoulders outline -->
+        <path d="M10,95 C10,85 20,75 35,75 L65,75 C80,75 90,85 90,95" />
+      </svg>
+    </div>
     <canvas id="overlay"></canvas>
   </div>
 
   <div class="controls">
-    <button id="verifyBtn" onclick="startVerification()" disabled>Verify Identity</button>
+    <button id="verifyBtn" onclick="captureAndSend('verify')" disabled>Verify Identity</button>
+    <button id="registerBtn" onclick="showRegistrationForm()" disabled>Register Face</button>
+  </div>
+
+  <div id="result">System logs will appear here...</div>
+</div>
+
+<!-- Registration Form Container (Right Side) -->
+<div class="form-container" id="formContainer">
+  <h3 class="form-title">Registration Details</h3>
+  
+  <div class="form-group">
+    <label for="userId">User ID</label>
+    <input type="text" id="userId" value="user_001" placeholder="Enter unique user ID">
   </div>
   
-  <div id="result">System logs will appear here...</div>
+  <div class="form-group">
+    <label for="userName">Full Name *</label>
+    <input type="text" id="userName" placeholder="Enter your full name" required>
+  </div>
+  
+  <div class="form-group">
+    <label for="userEmail">Email Address *</label>
+    <input type="email" id="userEmail" placeholder="Enter your email" required>
+  </div>
+  
+  <!-- AI Detected Information Section -->
+  <div class="detected-section" id="detectedSection">
+    <h4 style="margin-top: 0; color: #1971c2;">AI Detected Information</h4>
+    
+    <div class="detected-item">
+      <span class="detected-label">Gender:</span>
+      <span class="detected-value" id="detectedGender">Waiting for detection...</span>
+      <div class="confidence-indicator">
+        <div class="confidence-fill" id="genderConfidenceFill" style="width: 0%"></div>
+      </div>
+    </div>
+    
+    <div class="detected-item">
+      <span class="detected-label">Estimated Age:</span>
+      <span class="detected-value" id="detectedAge">--</span>
+    </div>
+    
+    <div class="detected-item">
+      <span class="detected-label">Face Status:</span>
+      <span class="detected-value" id="faceStatus">No face detected</span>
+    </div>
+    
+    <div class="confidence-text" id="confidenceText">
+      Gender confidence: 0%
+    </div>
+  </div>
+  
+  <!-- Read-only form fields for age and gender -->
+  <div class="form-group">
+    <label for="aiGender">Gender (AI Detected)</label>
+    <input type="text" id="aiGender" disabled placeholder="Will be auto-filled">
+  </div>
+  
+  <div class="form-group">
+    <label for="aiAge">Age (AI Estimated)</label>
+    <input type="number" id="aiAge" disabled placeholder="Will be auto-filled">
+  </div>
+  
+  <div class="form-buttons">
+    <button id="cancelBtn" onclick="hideRegistrationForm()">Cancel</button>
+    <button id="confirmBtn" onclick="confirmRegistration()">Register Now</button>
+  </div>
+  
+  <div style="margin-top: 20px; font-size: 12px; color: #6c757d; text-align: center;">
+    <p>Position yourself clearly in front of the camera.</p>
+    <p>Age and gender will be auto-detected and cannot be edited.</p>
+  </div>
 </div>
 
 <canvas id="captureCanvas" width="640" height="480" style="display:none"></canvas>
@@ -50,76 +375,55 @@ const overlay = document.getElementById("overlay");
 const overlayCtx = overlay.getContext("2d");
 const status = document.getElementById("status");
 const verifyBtn = document.getElementById("verifyBtn");
+const registerBtn = document.getElementById("registerBtn");
 const challengeText = document.getElementById("challengeText");
 const result = document.getElementById("result");
 const captureCanvas = document.getElementById("captureCanvas");
+const formContainer = document.getElementById("formContainer");
+const aiGender = document.getElementById("aiGender");
+const aiAge = document.getElementById("aiAge");
+const detectedGender = document.getElementById("detectedGender");
+const detectedAge = document.getElementById("detectedAge");
+const faceStatus = document.getElementById("faceStatus");
+const genderConfidenceFill = document.getElementById("genderConfidenceFill");
+const confidenceText = document.getElementById("confidenceText");
+const detectedSection = document.getElementById("detectedSection");
 
-// Load models from local directory
 const MODEL_PATH = './models/';
+let latestDetection = null;
+let isRegistrationFormVisible = false;
 
 async function init() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
     video.srcObject = stream;
-    
+
     status.innerText = "Status: Loading AI Models...";
-    
-    // Load models from local directory
+
     await Promise.all([
       faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_PATH),
       faceapi.nets.ageGenderNet.loadFromUri(MODEL_PATH),
       faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_PATH)
     ]);
-    
+
     status.innerText = "Status: AI Engine Active";
     verifyBtn.disabled = false;
-    
+    registerBtn.disabled = false;
+
     const challenges = [
       { label: "Blink your eyes", value: "blink" },
       { label: "Turn head left", value: "turn_left" },
       { label: "Turn head right", value: "turn_right" }
     ];
     const selected = challenges[Math.floor(Math.random() * challenges.length)];
-    challengeText.innerText = "Challenge: " + selected.label;
     window.currentChallenge = selected.value;
+    challengeText.innerText = "Challenge: " + selected.label;
 
     startAnalysis();
   } catch (err) {
-    status.innerText = "Status: Error - " + err.message;
-    result.innerText = "Error initializing: " + err.message + "\n\nCheck that you have all required model files in the models/ folder:\n" +
-      "1. tiny_face_detector_model-shard1\n" +
-      "2. tiny_face_detector_model-weights_manifest.json\n" +
-      "3. age_gender_model-shard1\n" +
-      "4. age_gender_model-weights_manifest.json\n" +
-      "5. face_landmark_68_model-shard1 (if missing, download from: https://github.com/justadudewhohacks/face-api.js/tree/master/weights)\n" +
-      "6. face_landmark_68_model-weights_manifest.json";
+    status.innerText = "Error: " + err.message;
+    console.error(err);
   }
-}
-
-/**
- * Detects eyeglasses by analyzing the contrast/brightness 
- * on the bridge of the nose between the eyes.
- */
-function checkEyeglasses(landmarks) {
-  const leftEye = landmarks.getLeftEye();
-  const rightEye = landmarks.getRightEye();
-  const nose = landmarks.getNose();
-  
-  // Calculate the bridge area between the inner corners of the eyes
-  const leftInner = leftEye[3];
-  const rightInner = rightEye[0];
-  const bridgeTop = nose[0];
-  
-  // Heuristic: People with glasses often have a specific landmark 
-  // distribution or higher variance in the bridge area.
-  // Since we don't have raw pixel access easily in this loop without performance hit,
-  // we use a geometric heuristic: the distance between eye corners vs nose bridge.
-  const eyeDist = Math.abs(rightInner.x - leftInner.x);
-  const bridgeDist = Math.abs(bridgeTop.y - ((leftInner.y + rightInner.y) / 2));
-  
-  // This is a simplified proxy: in a real app, you'd use a small CNN.
-  // For the UI, we'll simulate the detection based on landmark stability.
-  return (eyeDist > 25) ? "Yes" : "No";
 }
 
 function startAnalysis() {
@@ -137,46 +441,205 @@ function startAnalysis() {
     overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
     const resized = faceapi.resizeResults(detections, displaySize);
 
-    resized.forEach(det => {
-      // Flip the detection box coordinates horizontally to match the mirrored video
+    if (resized.length > 0) {
+      latestDetection = resized[0];
+      const det = latestDetection;
       const { x, y, width, height } = det.detection.box;
-      const flippedX = overlay.width - x - width;
       
-      // Draw Face Box (unflipped - correct orientation)
+      const flippedX = overlay.width - x - width;
+
       overlayCtx.strokeStyle = "#00ff00";
       overlayCtx.lineWidth = 3;
       overlayCtx.strokeRect(flippedX, y, width, height);
 
-      // Data Extraction
       const age = Math.round(det.age);
       const gender = det.gender;
-      const genderConf = Math.round(det.genderProbability * 100);
-      
-      // Eyeglasses Detection (Heuristic)
-      const hasGlasses = checkEyeglasses(det.landmarks);
+      const conf = Math.round(det.genderProbability * 100);
 
-      // UI Labels
-      const mainLabel = `${gender} (${genderConf}%) | Age: ~${age}`;
-      const glassesLabel = `Glasses: ${hasGlasses}`;
-
-      // Draw Labels (unflipped - correct orientation)
-      overlayCtx.fillStyle = "rgba(0, 0, 0, 0.7)";
-      overlayCtx.fillRect(flippedX, y - 55, 200, 50);
-      
+      overlayCtx.fillStyle = "rgba(0,0,0,0.7)";
+      overlayCtx.fillRect(flippedX, y - 40, 200, 35);
       overlayCtx.fillStyle = "#00ff00";
       overlayCtx.font = "bold 14px Arial";
-      overlayCtx.fillText(mainLabel, flippedX + 10, y - 35);
-      overlayCtx.fillStyle = hasGlasses === "Yes" ? "#00ff00" : "#ffcc00";
-      overlayCtx.fillText(glassesLabel, flippedX + 10, y - 15);
-    });
-  }, 100);
+      overlayCtx.fillText(`${gender} (${conf}%) | Age ~${age}`, flippedX + 8, y - 18);
+      
+      if (isRegistrationFormVisible) {
+        updateDetectionInfo();
+      }
+    } else {
+      latestDetection = null;
+      if (isRegistrationFormVisible) {
+        clearDetectionInfo();
+      }
+    }
+  }, 120);
 }
 
-async function startVerification() {
+function updateDetectionInfo() {
+  if (!latestDetection) return;
+  
+  const age = Math.round(latestDetection.age);
+  const gender = latestDetection.gender;
+  const confidence = Math.round(latestDetection.genderProbability * 100);
+  
+  // Update form fields
+  aiGender.value = gender;
+  aiAge.value = age;
+  
+  // Update display info
+  detectedGender.textContent = gender;
+  detectedGender.className = "detected-value face-detected";
+  detectedAge.textContent = age + " years";
+  faceStatus.textContent = "Face detected";
+  faceStatus.className = "detected-value face-detected";
+  
+  // Update confidence indicator
+  genderConfidenceFill.style.width = confidence + '%';
+  confidenceText.textContent = `Gender confidence: ${confidence}%`;
+  
+  // Add highlight effect
+  detectedSection.classList.add('highlight-box');
+}
+
+function clearDetectionInfo() {
+  detectedGender.textContent = "Waiting for detection...";
+  detectedGender.className = "detected-value";
+  detectedAge.textContent = "--";
+  faceStatus.textContent = "No face detected";
+  faceStatus.className = "detected-value no-face-detected";
+  
+  aiGender.value = "";
+  aiAge.value = "";
+  
+  genderConfidenceFill.style.width = '0%';
+  confidenceText.textContent = "Gender confidence: 0%";
+  
+  detectedSection.classList.remove('highlight-box');
+}
+
+function showRegistrationForm() {
+  formContainer.style.display = 'block';
+  isRegistrationFormVisible = true;
+  
+  verifyBtn.disabled = true;
+  registerBtn.disabled = true;
+  
+  document.getElementById("userName").value = "";
+  document.getElementById("userEmail").value = "";
+  document.getElementById("userId").value = "user_" + Date.now().toString().slice(-6);
+  
+  if (latestDetection) {
+    updateDetectionInfo();
+  } else {
+    clearDetectionInfo();
+  }
+  
+  document.getElementById("userName").focus();
+}
+
+function hideRegistrationForm() {
+  formContainer.style.display = 'none';
+  isRegistrationFormVisible = false;
+  
+  verifyBtn.disabled = false;
+  registerBtn.disabled = false;
+  
+  result.innerText = "Registration cancelled.";
+}
+
+async function confirmRegistration() {
+  const userId = document.getElementById("userId").value.trim();
+  const userName = document.getElementById("userName").value.trim();
+  const userEmail = document.getElementById("userEmail").value.trim();
+  const userGender = aiGender.value;
+  const userAge = aiAge.value;
+
+  if (!userName || !userEmail) {
+    result.innerText = ">> ERROR: Please fill in all required fields (Name and Email).";
+    return;
+  }
+
+  if (!latestDetection) {
+    result.innerText = ">> ERROR: No face detected. Please position yourself clearly in front of the camera.";
+    return;
+  }
+
+  if (!userGender || !userAge) {
+    result.innerText = ">> ERROR: Age and gender not detected. Please ensure your face is clearly visible.";
+    return;
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(userEmail)) {
+    result.innerText = ">> ERROR: Please enter a valid email address.";
+    return;
+  }
+
+  const ageNum = parseInt(userAge);
+  if (isNaN(ageNum) || ageNum < 1 || ageNum > 120) {
+    result.innerText = ">> ERROR: Invalid age detected. Please ensure your face is clearly visible.";
+    return;
+  }
+
+  result.innerText = `>> Starting registration for ${userName}...`;
+  await captureAndSendForRegistration(userId, userName, userEmail, ageNum, userGender);
+}
+
+async function captureAndSendForRegistration(userId, userName, userEmail, userAge, userGender) {
   const ctx = captureCanvas.getContext("2d");
   const frames = [];
+  result.innerText = `>> CAPTURING FRAMES FOR REGISTRATION...`;
+
+  const confirmBtn = document.getElementById("confirmBtn");
+  const originalText = confirmBtn.textContent;
+  confirmBtn.textContent = "Capturing...";
+  confirmBtn.disabled = true;
+
+  try {
+    for (let i = 0; i < 10; i++) {
+      ctx.drawImage(video, 0, 0, 640, 480);
+      frames.push(captureCanvas.toDataURL("image/jpeg", 0.6).split(',')[1]);
+      await new Promise(r => setTimeout(r, 150));
+    }
+
+    const res = await fetch("http://localhost:8000/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: userId,
+        name: userName,
+        email: userEmail,
+        age: userAge,
+        gender: userGender,
+        challenge: window.currentChallenge,
+        frames_base64: frames
+      })
+    });
+
+    const data = await res.json();
+    hideRegistrationForm();
+    
+    if (res.ok) {
+      result.innerText = `>> REGISTRATION SUCCESSFUL\n` + JSON.stringify(data, null, 2);
+    } else {
+      result.innerText = `>> REGISTRATION FAILED\n` + JSON.stringify(data, null, 2);
+    }
+    
+  } catch (err) {
+    result.innerText = ">> NETWORK ERROR: " + err.message;
+    hideRegistrationForm();
+  } finally {
+    confirmBtn.textContent = originalText;
+    confirmBtn.disabled = false;
+  }
+}
+
+async function captureAndSend(mode) {
+  const ctx = captureCanvas.getContext("2d");
+  const frames = [];
+  result.innerText = `>> CAPTURING FRAMES FOR ${mode.toUpperCase()}...`;
+
   verifyBtn.disabled = true;
-  result.innerText = ">> CAPTURING LIVENESS DATA...";
+  registerBtn.disabled = true;
 
   for (let i = 0; i < 10; i++) {
     ctx.drawImage(video, 0, 0, 640, 480);
@@ -184,25 +647,39 @@ async function startVerification() {
     await new Promise(r => setTimeout(r, 150));
   }
 
-  result.innerText = ">> SENDING TO SECURE BACKEND...";
+  const endpoint = mode === "register" ? "/register" : "/verify";
+  const userId = document.getElementById("userId")?.value || "user_001";
+
   try {
-    const res = await fetch("http://localhost:8000/verify", {
+    const res = await fetch(`http://localhost:8000${endpoint}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        user_id: "user_001",
+        user_id: userId,
         challenge: window.currentChallenge,
         frames_base64: frames
       })
     });
+
     const data = await res.json();
-    result.innerText = ">> VERIFICATION RESULT:\n" + JSON.stringify(data, null, 2);
+    result.innerText = `>> ${mode.toUpperCase()} RESULT\n` + JSON.stringify(data, null, 2);
   } catch (err) {
     result.innerText = ">> NETWORK ERROR: " + err.message;
   } finally {
     verifyBtn.disabled = false;
+    registerBtn.disabled = false;
   }
 }
+
+document.addEventListener('keypress', function(e) {
+  if (e.key === 'Enter' && formContainer.style.display === 'block') {
+    const activeElement = document.activeElement;
+    if (activeElement.id === 'userName' || activeElement.id === 'userEmail') {
+      e.preventDefault();
+      confirmRegistration();
+    }
+  }
+});
 
 window.onload = init;
 </script>

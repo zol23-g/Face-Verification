@@ -1,6 +1,6 @@
 import os
 
-MYSQL_URL = "mysql+pymysql://root:@localhost:3306/face_db"
+MYSQL_URL = "mysql+pymysql://root:@localhost:3306/safe"
 
 QDRANT_HOST = "localhost"
 QDRANT_PORT = 6333
