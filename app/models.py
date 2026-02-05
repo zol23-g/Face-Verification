@@ -3,19 +3,21 @@ from app.database import Base
 from datetime import datetime
 import uuid
 
-class UserFace(Base):
-    __tablename__ = "user_faces"
+class StudentFace(Base):
+    __tablename__ = "student_faces"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     
     # Identity
     user_id = Column(String(64), unique=True, index=True, nullable=False)
-    name = Column(String(128))
+    first_name = Column(String(128))
+    last_name = Column(String(128))
+    middle_name = Column(String(128), nullable=True)
     email = Column(String(128))
 
     # Biometrics
     age = Column(Integer, nullable=True)
-    gender = Column(String(16), nullable=True)
+   
 
     # Similarity & Fraud Intelligence
     similar_user_ids = Column(JSON, default=list)        # ["user_12", "user_88"]
@@ -33,18 +35,10 @@ class UserFace(Base):
     # Face Quality Metrics
     embedding_quality = Column(Float, default=0.0)       # Quality score of face embedding (0-1)
     detection_confidence = Column(Float, default=0.0)    # Average face detection confidence
+    token = Column(String(256), nullable=False)  # Optional token for additional verification
+    comparison_enabled = Column(String (3), default="No")  # Whether comparison is enabled for this user
     
     # Audit
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-
-
-class VerificationLog(Base):
-    __tablename__ = "user_face_verification_logs"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(String(64))
-    matched_user = Column(String(64), nullable=True)
-    similarity = Column(Float)
-    fraud_score = Column(Float)
-    timestamp = Column(DateTime, default=datetime.utcnow)
